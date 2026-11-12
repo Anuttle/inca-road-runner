@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Inca Road Runner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: the road map is the stage; one control card beside (wide) or below (narrow) holds the die, the prompt and each player's choices. */
+:root{
+  --bg:#e9ede4; --panel:#f8faf4; --ink:#1c2b2a; --muted:#5a6b66; --line:#c6cebf;
+  --road:#8a5a2b; --city:#8f1d2c; --accent:#b3215e; --gold:#c98a12; --water:#1f6fb0; --rock:#6f7772; --go:#1f7a4d;
+  --display:"Bricolage Grotesque","Trebuchet MS",sans-serif; --body:"Atkinson Hyperlegible",Verdana,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141b24; --panel:#1d2733; --ink:#eef1ea; --muted:#9fb0aa; --line:#33414f;
+  --road:#c9955c; --city:#e0596b; --accent:#f06a9f; --gold:#f0b63c; --water:#5fb0ee; --rock:#9aa39e; --go:#4cc788; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141b24; --panel:#1d2733; --ink:#eef1ea; --muted:#9fb0aa; --line:#33414f;
+  --road:#c9955c; --city:#e0596b; --accent:#f06a9f; --gold:#f0b63c; --water:#5fb0ee; --rock:#9aa39e; --go:#4cc788; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.35;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 84px;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation}
+.e{font-style:italic}
+.es{font-style:italic;color:var(--muted);display:block}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.4rem,4vw,2rem);margin:0;line-height:1.05;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:1.1rem;margin:0}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:10px}
+header .grow{flex:1;min-width:200px}
+.stat{background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:4px 12px;text-align:center;font-variant-numeric:tabular-nums}
+.stat b{font-family:var(--display);font-size:1.3rem;display:block;line-height:1.1}
+.stat small{color:var(--muted);font-size:.75rem}
+.stat.mode{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.stat.mode small{color:var(--panel);opacity:.85}
+.who small{font-family:var(--body);font-weight:400;font-size:.8rem;color:var(--muted);display:block}
+.score{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.sc{display:flex;align-items:center;gap:10px;background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:6px 12px;min-width:0;font-size:.9rem;line-height:1.15}
+.sc>span{flex:1;min-width:0}
+.sc.em{text-align:right}
+.sc i{width:14px;height:14px;border-radius:50%;background:var(--go);flex:none}
+.sc.em i{background:var(--accent)}
+.sc b{font-family:var(--display);font-size:1.7rem;font-variant-numeric:tabular-nums}
+.sc.lead{border-color:var(--go);border-width:3px}
+.sc.em.lead{border-color:var(--accent)}
+.sc small{color:var(--muted);font-size:.75rem;display:block}
+.tv{overflow-x:auto}
+.tv table{border-collapse:collapse;font-size:.82rem;width:100%;font-variant-numeric:tabular-nums}
+.tv th,.tv td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+.nm{font:inherit;color:inherit;background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;min-height:44px;-webkit-user-select:text;user-select:text}
+.frame{background:var(--bg);border-radius:10px;padding:10px;margin:0}
+.pts{margin:8px 0 0;padding:0;list-style:none;font-size:.88rem;display:grid;grid-template-columns:auto 1fr;gap:4px 10px}
+.pts b{font-family:var(--display);font-variant-numeric:tabular-nums;text-align:right}
+.pts .h{grid-column:1/-1;font-weight:700;margin-top:4px}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+@media (min-width:900px){.wrap{grid-template-columns:minmax(0,1fr) 340px;align-items:start}}
+.board{background:var(--panel);border:2px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+svg{display:block;width:100%;height:auto;touch-action:manipulation}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:12px}
+.who{font-family:var(--display);font-weight:800;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.who i{width:14px;height:14px;border-radius:50%;background:var(--go);flex:none}
+.who.em i{background:var(--accent)}
+.msg{margin:8px 0 0;min-height:4.2em}
+.act{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.die{width:84px;height:84px;border-radius:16px;border:3px solid var(--ink);background:var(--panel);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:10px;gap:2px;cursor:pointer;flex:none}
+.die span{border-radius:50%;margin:3px}
+.die span.on{background:var(--ink)}
+.die:disabled{opacity:.35;cursor:default}
+.die.hot{border-color:var(--accent);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 30%,transparent)}
+.die.spin{animation:spin .5s linear}
+@keyframes spin{50%{transform:rotate(180deg) scale(.8)}100%{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.die.spin{animation:none}#runner{transition:none!important}}
+button{font:inherit;color:inherit}
+.btn{min-height:48px;padding:8px 16px;border-radius:12px;border:2px solid var(--ink);background:var(--panel);font-weight:700;cursor:pointer}
+.btn.pri{background:var(--ink);color:var(--panel)}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.tokens{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+.tok{display:flex;align-items:center;gap:8px;min-height:52px;padding:6px 10px;border-radius:12px;border:2px solid var(--line);background:var(--bg);text-align:left;cursor:pointer;font-size:.85rem;line-height:1.15}
+.tok b{font-family:var(--display);font-size:1.3rem;flex:none;width:1.6em;height:1.6em;border-radius:50%;background:var(--ink);color:var(--panel);display:grid;place-items:center}
+.tok.em b{background:var(--accent)}
+.tok.cl b{background:var(--gold);color:#1c2b2a}
+.tok em{font-style:normal;margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+.tok.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+.tok:disabled{opacity:.4;cursor:default}
+.key{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:8px 0 0;font-size:.88rem}
+.key b{font-family:var(--display);text-align:center}
+ol.log{margin:8px 0 0;padding:0;list-style:none;max-height:220px;overflow:auto;font-size:.88rem;display:flex;flex-direction:column;gap:8px}
+ol.log li{border-left:3px solid var(--gold);padding-left:8px}
+ol.log b{font-variant-numeric:tabular-nums}
+.over{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 88%,transparent);display:flex;align-items:flex-start;justify-content:center;overflow:auto;z-index:5;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--panel);border:2px solid var(--ink);border-radius:18px;padding:20px;max-width:620px;width:100%;margin:auto;display:flex;flex-direction:column;gap:12px}
+.sheet ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+.sheet .q{border-left:4px solid var(--accent);padding-left:10px;font-weight:700}
+.modes{display:flex;gap:10px;flex-wrap:wrap}
+.modes .btn{flex:1;min-width:200px;text-align:left}
+.modes .btn small{display:block;font-weight:400}
+.bank{font-size:.9rem;color:var(--muted)}
+.over{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.langs{display:flex;border:2px solid var(--ink);border-radius:12px;overflow:hidden}
+.langs button{min-height:44px;padding:6px 12px;border:0;background:var(--panel);font-weight:700;cursor:pointer}
+.langs button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.ear{position:fixed;z-index:6;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));min-height:48px;max-width:min(320px,72vw);padding:8px 16px;border-radius:24px;border:2px solid var(--ink);background:var(--gold);color:#1c2b2a;font-weight:700;text-align:left;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);line-height:1.15}
+.ear .es{color:inherit;opacity:.85}
+.ear[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+body.listen :is(.tok,#msg,.key>span,.pts>span,ol.log li,.sheet li,.sheet p,.sheet h1,.sheet h2,.sheet .modes .btn,.sc,.who){outline:2px dashed var(--gold);outline-offset:2px;cursor:pointer}
+.tpic{font-size:3rem;text-align:center;line-height:1.2;background:var(--bg);border-radius:14px;padding:14px 8px}
+.tdots{display:flex;gap:6px}
+.tdots i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.tdots i.on{background:var(--accent)}
+.btn.tskip{align-self:center;border-color:var(--line);font-weight:400;color:var(--muted)}
+.modes #tprev{flex:0 1 auto;min-width:0}
+/* board */
+.road{stroke:var(--road);stroke-width:1.6;fill:none;stroke-linecap:round}
+.bridge{stroke:var(--water);stroke-width:1.6;fill:none;stroke-dasharray:2.2 1.6}
+.sp{fill:var(--panel);stroke:var(--road);stroke-width:.7}
+.sp.br{stroke:var(--water)}
+.cityc{fill:var(--city);stroke:var(--panel);stroke-width:.8}
+.lbl{font-family:var(--display);font-weight:700;font-size:3.4px;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:1.1px;stroke-linejoin:round}
+.sm{font-family:var(--body);font-size:2.4px;fill:var(--water);paint-order:stroke;stroke:var(--panel);stroke-width:.9px}
+.mtn{fill:var(--rock);opacity:.55}
+.snow{fill:var(--panel);opacity:.9}
+.opt{fill:var(--go);opacity:.28;stroke:var(--go);stroke-width:.8;animation:pulse 1.1s ease-in-out infinite alternate}
+.opt.pl{fill:var(--accent);stroke:var(--accent)}
+.opt.tg{opacity:.7;animation:none}
+.opt.cl{fill:var(--gold);stroke:var(--gold)}
+.ltr{font-family:var(--display);font-weight:800;font-size:3.6px;text-anchor:middle;dominant-baseline:central;fill:var(--panel);pointer-events:none}
+.ltrb{fill:var(--ink);pointer-events:none}
+@keyframes pulse{to{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.opt{animation:none;opacity:.5}}
+.hit{fill:transparent;cursor:pointer}
+.emo{font-size:6px;text-anchor:middle;dominant-baseline:central}
+#runner{transition:transform .45s ease}
+#runner circle{fill:var(--gold);stroke:var(--ink);stroke-width:.8}
+</style>
+</head>
+<body>
+<header>
+  <div class="grow">
+    <h1>Inca Road Runner</h1>
+    <span class="es">Correcaminos Inca</span>
+  </div>
+  <div class="stat mode" id="mode" hidden></div>
+  <div class="stat"><b id="turn">1</b><small>turn / <i class="e">turno</i></small></div>
+  <div class="stat"><b id="left">24</b><small>turns left / <i class="e">turnos restantes</i></small></div>
+  <button class="btn" id="help" type="button">Menu / <i class="e">Menú</i></button>
+</header>
+<div class="score" id="score">
+  <div class="sc" id="scRw"><i></i><span id="scRl"></span><b id="scR">0</b></div>
+  <div class="sc em" id="scSw"><b id="scS">0</b><span id="scSl"></span><i></i></div>
+</div>
+
+<div class="wrap">
+  <div class="board"><svg id="svg" viewBox="2 2 120 78" role="img" aria-label="Map of the Inca road from Quito to Santiago"></svg></div>
+  <div class="side">
+    <div class="card">
+      <div class="who" id="who"><i></i><span id="whoT"></span></div>
+      <p class="msg" id="msg"></p>
+      <div class="act">
+        <button class="die" id="die" type="button" aria-label="Roll the die / Tira el dado"></button>
+        <button class="btn" id="say" type="button" hidden>🔊 Read aloud<span class="es">Leer en voz alta</span></button>
+        <button class="btn" id="hush" type="button" hidden>⏹ Stop reading<span class="es">Detener la lectura</span></button>
+        <div class="langs" id="langs" hidden role="group" aria-label="Reading language / Idioma de lectura"><button type="button" data-l="en">English</button><button type="button" data-l="es"><i class="e">Español</i></button><button type="button" data-l="both">Both / <i class="e">Ambos</i></button></div>
+      </div>
+      <div class="tokens" id="tokens" hidden></div>
+    </div>
+    <div class="card">
+      <h2>The spirits' die <span class="es">El dado de los espíritus</span></h2>
+      <div class="key" id="key"></div>
+    </div>
+    <div class="card">
+      <h2>Points <span class="es">Puntos</span></h2>
+      <div class="pts">
+        <span class="h">Runner <span class="es">Corredor</span></span>
+        <b>+10</b><span>each space closer to Santiago<span class="es">cada espacio más cerca de Santiago</span></span>
+        <b>+20</b><span>each new city<span class="es">cada ciudad nueva</span></span>
+        <b>+100</b><span>deliver the message, and +5 for each turn left<span class="es">entregar el mensaje, y +5 por cada turno restante</span></span>
+        <b>+15</b><span>each right answer at a city (the Spirits can earn this too)<span class="es">cada respuesta correcta en una ciudad (los Espíritus también pueden ganarlo)</span></span>
+        <span class="h">Spirits of the Mountain <span class="es">Espíritus de la Montaña</span></span>
+        <b>+25</b><span>each turn the Runner gets no closer<span class="es">cada turno en que el corredor no se acerca</span></span>
+        <b>+20</b><span>a hazard works: odd event roll, or the Runner stops to clear the road<span class="es">un peligro funciona: dado de evento impar, o el corredor se detiene a despejar el camino</span></span>
+        <b>+100</b><span>the message is late<span class="es">el mensaje llega tarde</span></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Game Log <span class="es">Registro del Juego</span></h2>
+      <ol class="log" id="log"></ol>
+    </div>
+  </div>
+</div>
+
+<div class="over" id="over"><div class="sheet" id="sheet"></div></div>
+<button class="ear" id="ear" type="button" hidden aria-pressed="false"><span id="earT"></span></button>
+
+<script>
+const $=id=>document.getElementById(id);
+const CITY={
+ Q:{x:12,y:10,n:'Quito',en:'Chasquis were chosen from the strongest and fittest young men.',es:'Los chasquis eran elegidos entre los jóvenes más fuertes y aptos.'},
+ CC:{x:12,y:42,n:'Chan Chan',en:'Inca engineers used and improved roads left by earlier cultures such as the Chimu.',es:'Los ingenieros incas utilizaron y mejoraron los caminos dejados por culturas anteriores como los chimú.'},
+ CJ:{x:36,y:24,n:'Cajamarca',en:'The Incas built more than 14,000 miles (22,530 km) of paved roads.',es:'Los incas construyeron más de 22 530 km de caminos pavimentados.'},
+ MP:{x:56,y:56,n:'Machu Picchu',en:'On steep slopes the Incas built stone steps like giant staircases.',es:'En las laderas empinadas los incas construyeron escalones de piedra como gigantescas escaleras.'},
+ CZ:{x:76,y:18,n:'Cuzco',en:'The last Inca suspension bridge still standing is near Cusco, in the town of Huinchiri.',es:'El último puente colgante inca existente se encuentra cerca de Cuzco, en el pueblo de Huinchiri.'},
+ TI:{x:86,y:68,n:'Lake Titicaca',en:'The Incas did not know the wheel and had no horses. They traveled on foot, and llamas carried goods.',es:'Los incas no conocían la rueda ni tenían caballos. Viajaban a pie y las llamas transportaban mercancías.'},
+ AR:{x:104,y:40,n:'Arequipa',en:'Chasquis lived in tambos along the roads. By relay, a message could travel over 250 miles a day.',es:'Los chasquis vivían en tambos a lo largo de los caminos. Por relevos, un mensaje podía viajar más de 400 km al día.'},
+ SA:{x:114,y:70,n:'Santiago',en:'The Andean royal road was over 3,500 miles long, longer than the longest Roman road.',es:'El camino real andino tenía más de 5600 km, más largo que la calzada romana más larga.'}
+};
+const EDGES=[['Q','CC',2],['Q','CJ',2],['CC','CJ',1],['CC','MP',3],['CJ','MP',2],['MP','CZ',2],['CZ','TI',2],['CZ','AR',1],['TI','AR',1],['AR','SA',1],['CJ','TI',3,[60,24]],['MP','AR',2,[78,72]]];
+const MTN=[[24,8],[47,33],[70,42],[100,62]];
+const TOK={rock:{e:'🪨',en:'Rockslide',es:'Derrumbe',n:3,block:1},block:{e:'❌',en:'Roadblock',es:'Obstáculo',n:3,block:1},llama:{e:'🦙',en:'Event',es:'Evento',n:4},flood:{e:'🌊',en:'Bridge event',es:'Evento de puente',n:2}};
+const DIE={
+ 1:['The spirits speed you up! Move 2 extra spaces.','¡Los espíritus te aceleran! Avanza 2 espacios extra.'],
+ 2:['The spirits stop you in place.','Los espíritus te detienen en tu lugar.'],
+ 3:['The spirits clear a roadblock.','Los espíritus eliminan un obstáculo.'],
+ 4:['The spirits send you back a space.','Los espíritus te envían un espacio atrás.'],
+ 5:['The spirits move you randomly.','Los espíritus te mueven al azar.'],
+ 6:['The spirits do nothing. Keep running.','Los espíritus no hacen nada. Sigue corriendo.']};
+const LIMIT=24;
+const FIX={
+ rock:{en:'Inca engineers carved stone steps like giant staircases to cross steep slopes.',es:'Los ingenieros incas tallaron escalones de piedra como gigantescas escaleras para cruzar las laderas empinadas.',doEn:'Rebuild the stone steps to clear the rockslide',doEs:'Reconstruir los escalones de piedra para quitar el derrumbe'},
+ block:{en:'In desert areas the Incas built low walls to keep sand from drifting over the road.',es:'En las zonas desérticas los incas construyeron muros bajos para evitar que la arena cubriera el camino.',doEn:'Build a low wall to clear the sand off the road',doEs:'Construir un muro bajo para quitar la arena del camino'},
+ llama:{en:'The Incas had no wheels or horses, so llamas carried goods along the road.',es:'Los incas no tenían ruedas ni caballos, así que las llamas llevaban mercancías por el camino.'},
+ flood:{en:'Inca bridges hung from thick woven rope cables: two were rails and three held the walkway.',es:'Los puentes incas colgaban de gruesos cables de cuerda trenzada: dos eran barandillas y tres sostenían la pasarela.'}};
+// each question: English, Spanish, 3 answers (the first is correct)
+const QUIZ=[
+ ['How did chasquis carry messages across the empire?','¿Cómo llevaban los chasquis los mensajes por el imperio?',[['By running in relays from tambo to tambo','Corriendo en relevos de tambo en tambo'],['By riding horses','Montando a caballo'],['By driving wheeled carts','Conduciendo carretas con ruedas']]],
+ ['How far could a message travel in one day?','¿Qué distancia podía viajar un mensaje en un día?',[['Over 250 miles (400 km)','Más de 400 km (250 millas)'],['About 25 miles (40 km)','Unos 40 km (25 millas)'],['About 5 miles (8 km)','Unos 8 km (5 millas)']]],
+ ['What did the Incas build on steep mountain slopes?','¿Qué construyeron los incas en las laderas empinadas?',[['Stone steps like giant staircases','Escalones de piedra como gigantescas escaleras'],['Wide ramps for wagons','Rampas anchas para carretas'],['Nothing. They went around every mountain','Nada. Rodeaban todas las montañas']]],
+ ['How did the Incas cross rivers?','¿Cómo cruzaban los ríos los incas?',[['On suspension bridges made of thick woven rope','Por puentes colgantes de gruesa cuerda trenzada'],['On stone bridges built for carts','Por puentes de piedra hechos para carretas'],['On ferries pulled by horses','En balsas tiradas por caballos']]],
+ ['What was a tambo?','¿Qué era un tambo?',[['A cabin along the road where chasquis lived and waited','Una cabaña junto al camino donde los chasquis vivían y esperaban'],['A rope bridge over a river','Un puente de cuerda sobre un río'],['A market in Cuzco','Un mercado en Cuzco']]],
+ ['How many miles of paved road did the Incas build?','¿Cuántos kilómetros de caminos pavimentados construyeron los incas?',[['More than 14,000 miles (22,530 km)','Más de 22 530 km (14 000 millas)'],['About 1,400 miles (2,250 km)','Unos 2250 km (1400 millas)'],['About 140 miles (225 km)','Unos 225 km (140 millas)']]],
+ ['Which of these did the Incas NOT have?','¿Cuál de estas cosas NO tenían los incas?',[['The wheel and horses','La rueda y los caballos'],['Llamas','Llamas'],['Roads and bridges','Caminos y puentes']]],
+ ['Why did the Inca Empire need roads and messengers?','¿Por qué necesitaba el Imperio Inca caminos y mensajeros?',[['To communicate with and control every corner of a vast territory','Para comunicarse con cada rincón de un vasto territorio y controlarlo'],['So wheeled carts could carry gold','Para que las carretas con ruedas llevaran oro'],['So people would stay in their villages','Para que la gente se quedara en sus pueblos']]],
+ ['How was an emergency message sent, such as news of an invasion?','¿Cómo se enviaba un mensaje de emergencia, como la noticia de una invasión?',[['By a chain of bonfires','Mediante una cadena de hogueras'],['By a letter written on paper','Con una carta escrita en papel'],['By a rider on horseback','Con un jinete a caballo']]],
+ ['What did the Incas build in the desert to protect the road?','¿Qué construyeron los incas en el desierto para proteger el camino?',[['Low walls to keep sand off the road','Muros bajos para que la arena no cubriera el camino'],['Roofs over the road','Techos sobre el camino'],['Canals full of water','Canales llenos de agua']]],
+ ['How did a chasqui pass the message to the next runner?','¿Cómo pasaba un chasqui el mensaje al siguiente corredor?',[['He ran beside the next runner, who memorized it','Corría junto al siguiente corredor, quien lo memorizaba'],['He handed over a written letter','Le entregaba una carta escrita'],['He shouted it from a mountain top','Lo gritaba desde la cima de una montaña']]],
+ ['What animal carried goods on the Inca roads?','¿Qué animal llevaba mercancías por los caminos incas?',[['Llamas','Llamas'],['Horses','Caballos'],['Oxen','Bueyes']]],
+ ['Who was chosen to be a chasqui?','¿Quiénes eran elegidos para ser chasquis?',[['The strongest and fittest young men','Los jóvenes más fuertes y aptos'],['The oldest men in each village','Los hombres más viejos de cada pueblo'],['Only the family of the Sapa Inca','Solo la familia del Sapa Inca']]],
+ ['How long was the royal road through the Andes?','¿Qué longitud tenía el camino real por los Andes?',[['Over 3,500 miles, longer than the longest Roman road','Más de 5600 km, más largo que la calzada romana más larga'],['About 350 miles','Unos 560 km'],['About 35 miles','Unos 56 km']]]
+];
+const EVQ={relay:['How did relay runners help the Sapa Inca control a huge empire?','¿Cómo ayudaron los corredores de relevos al Sapa Inca a controlar un imperio enorme?'],
+ bridge:['What would happen to messages and goods without bridges?','¿Qué pasaría con los mensajes y las mercancías sin puentes?'],
+ clear:['What would happen to the empire if roads stayed blocked?','¿Qué pasaría con el imperio si los caminos quedaran bloqueados?'],
+ stuck:['Why did it matter that messages arrived quickly?','¿Por qué importaba que los mensajes llegaran rápido?']};
+
+// build spaces
+const SP={},ADJ={};
+function addSp(id,o){SP[id]=o;ADJ[id]=[]}
+for(const k in CITY)addSp(k,{x:CITY[k].x,y:CITY[k].y,city:k});
+for(const [a,b,n,c] of EDGES){let prev=a;const A=CITY[a],B=CITY[b];
+  for(let i=1;i<=n;i++){const t=i/(n+1);let x,y;
+    if(c){x=(1-t)**2*A.x+2*t*(1-t)*c[0]+t*t*B.x;y=(1-t)**2*A.y+2*t*(1-t)*c[1]+t*t*B.y}else{x=A.x+(B.x-A.x)*t;y=A.y+(B.y-A.y)*t}
+    const id=a+'-'+b+'-'+i;addSp(id,{x,y,a,b,bridge:!!c,near:MTN.some(m=>Math.hypot(m[0]-x,m[1]-y)<12)});
+    ADJ[prev].push(id);ADJ[id].push(prev);prev=id}
+  ADJ[prev].push(b);ADJ[b].push(prev)}
+
+let S,auto=null;
+const PD=plainDist('SA');
+function add(w,n){S.score[w]+=n;S.gain[w]+=n}
+function scoreTurn(){const d=PD[S.pos];if(d<S.best){add('r',(S.best-d)*10);S.best=d}else add('s',25);const g=S.gain;
+  note(`Points: Runner +${g.r}, Spirits +${g.s}.`,`Puntos: Corredor +${g.r}, Espíritus +${g.s}.`);S.gain={r:0,s:0}}
+function fresh(mode){return{mode,score:{r:0,s:0},gain:{r:0,s:0},best:PD.Q,visited:{Q:1},phase:'move',pos:'Q',hist:[],target:null,turn:1,tokens:{},supply:{rock:3,block:3,llama:4,flood:2},bonus:0,stuck:false,log:[],opts:[],justCleared:null,face:6,msg:null,cur:null,seen:{Q:1},over:null,round:1,prev:null,runners:1,fresh:false,q:null,asked:[],quiz:{r:[0,0],s:[0,0]},events:[],usedBridge:false}}
+const ev=(kind,en,es)=>S.events.push({kind,turn:S.turn,en,es});
+const summary=()=>({over:S.over,turn:S.turn,r:S.score.r,s:S.score.s,cities:Object.keys(S.visited).length,qr:S.quiz.r,qs:S.quiz.s,runners:S.runners});
+const blocked=id=>S.tokens[id]&&TOK[S.tokens[id]].block;
+const moves=from=>ADJ[from].filter(n=>!blocked(n));
+function dist(from,extra){const d={[from]:0},q=[from];while(q.length){const u=q.shift();for(const v of ADJ[u]){if(v in d||blocked(v)||v===extra)continue;d[v]=d[u]+1;q.push(v)}}return d}
+function where(id){const s=SP[id];if(s.city)return[CITY[s.city].n,CITY[s.city].n];const r=CITY[s.a].n+'–'+CITY[s.b].n;return s.bridge?['bridge '+r,'puente '+r]:['road '+r,'camino '+r]}
+function canPlace(type,id){const s=SP[id];if(s.city||S.tokens[id]||id===S.pos||!S.supply[type])return false;
+  if(type==='rock'&&!s.near)return false;if(type==='flood'&&!s.bridge)return false;
+  if(TOK[type].block&&(id===S.justCleared||!('SA' in dist(S.pos,id))))return false;return true}
+const say=(en,es)=>{S.msg=[en,es]};
+const note=(en,es)=>{S.cur.en+=' '+en;S.cur.es+=' '+es};
+
+function moveTo(id){S.hist.push(S.pos);S.pos=id;if(SP[id].city&&!S.visited[id]){S.visited[id]=1;add('r',20)}}
+function fact(){const c=SP[S.pos].city;if(c&&!S.seen[c]){S.seen[c]=1;return c}return null}
+
+const SPIRITS=['Spirits of the Mountain','Espíritus de la Montaña'];
+const L='ABCDEFGH';
+function plainDist(from){const d={[from]:0},q=[from];while(q.length){const u=q.shift();for(const v of ADJ[u])if(!(v in d)){d[v]=d[u]+1;q.push(v)}}return d}
+function runnerOpts(){const o=moves(S.pos).map(id=>({k:'run',id}));if(S.phase==='move')for(const id of ADJ[S.pos])if(blocked(id))o.push({k:'clear',id});return o}
+function genOpts(){const d=plainDist(S.pos),all=[];for(const t in TOK)for(const id in SP)if(d[id]<=4&&canPlace(t,id))all.push({t,id});
+  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}
+  const out=[];for(const c of all)if(out.length<3&&!out.some(o=>o.t===c.t||o.id===c.id))out.push(c);
+  for(const c of all)if(out.length<3&&!out.some(o=>o.id===c.id))out.push(c);return out}
+function rollMsg(){if(S.mode==='solo')say('The Spirits of the Mountain are rolling the die…','Los Espíritus de la Montaña están tirando el dado…');else say('Spirits of the Mountain: tap the die to decide what happens.','Espíritus de la Montaña: toquen el dado para decidir qué sucede.')}
+function act(o){
+  if(o.k==='clear'){const t=S.tokens[o.id],w=where(o.id);delete S.tokens[o.id];S.justCleared=o.id;add('s',20);
+    S.cur={turn:S.turn,die:null,en:'The Runner used this turn to clear the '+TOK[t].en.toLowerCase()+' on the '+w[0]+'. '+FIX[t].en,es:'El corredor usó este turno para quitar el '+TOK[t].es.toLowerCase()+' en el '+w[1]+'. '+FIX[t].es};
+    ev('clear','the Runner had to stop and clear a '+TOK[t].en.toLowerCase()+' on the '+w[0],'el corredor tuvo que detenerse a quitar un '+TOK[t].es.toLowerCase()+' en el '+w[1]);return toPlace()}
+  if(S.phase==='move'){S.target=o.id;S.phase='roll';rollMsg()}
+  else{moveTo(o.id);S.bonus--;if(S.pos==='SA'||!S.bonus||!moves(S.pos).length)return land();say('Bonus move! Choose one more space.','¡Movimiento extra! Elige un espacio más.')}
+  render()}
+function placeOpt(o){S.tokens[o.id]=o.t;S.supply[o.t]--;const w=where(o.id);note('The Spirits put a '+TOK[o.t].en.toLowerCase()+' on the '+w[0]+'.','Los Espíritus pusieron un '+TOK[o.t].es.toLowerCase()+' en el '+w[1]+'.')}
+function choose(i){
+  if(S.phase==='move'||S.phase==='bonus'){const o=runnerOpts()[i];if(o)act(o)}
+  else if(S.phase==='place'){if(i>=0&&S.opts[i])placeOpt(S.opts[i]);else if(i!==-1)return;endTurn()}
+  else if(S.phase==='quiz')answer(i)}
+function tapSpace(id){
+  if(S.phase==='move'||S.phase==='bonus')choose(runnerOpts().findIndex(o=>o.id===id));
+  else if(S.phase==='place'){const i=S.opts.findIndex(o=>o.id===id);if(i>=0)choose(i)}}
+
+function roll(){
+  if(S.phase!=='roll'&&S.phase!=='event')return;
+  const r=1+Math.floor(Math.random()*6);S.face=r;const d=$('die');d.classList.remove('spin');void d.offsetWidth;d.classList.add('spin');
+  if(S.phase==='roll')applyRoll(r);else applyEvent(r)}
+
+function applyRoll(r){
+  S.cur={turn:S.turn,die:r,en:DIE[r][0],es:DIE[r][1]};const fx=S.fresh?1:0;S.fresh=false;
+  if(r===1){moveTo(S.target);if(S.pos!=='SA'&&moves(S.pos).length){S.bonus=2+fx;S.phase='bonus';say(DIE[1][0]+' Runner: choose your next space.',DIE[1][1]+' Corredor: elige tu siguiente espacio.');return render()}}
+  else if(r===2){}
+  else if(r===3){moveTo(S.target);const d=dist(S.pos);let best=null,bd=1e9;
+    for(const id in S.tokens)if(blocked(id)){const m=Math.min(...ADJ[id].map(n=>n in d?d[n]:99));if(m<bd){bd=m;best=id}}
+    if(best){const w=where(best),bt=S.tokens[best];delete S.tokens[best];note(FIX[bt].en,FIX[bt].es);note('The '+w[0]+' is open again.','El '+w[1]+' está abierto otra vez.')}else note('(No roadblocks on the map.)','(No hay obstáculos en el mapa.)')}
+  else if(r===4){const p=S.hist.pop();if(p&&!blocked(p))S.pos=p;else{if(p)S.hist.push(p);note('(Nowhere to go back to.)','(No hay adónde regresar.)')}}
+  else if(r===5){const m=moves(S.pos);moveTo(m[Math.floor(Math.random()*m.length)])}
+  else moveTo(S.target);
+  if(fx&&(r===3||r===6)&&S.pos!=='SA'&&moves(S.pos).length){S.bonus=1;S.phase='bonus';note('Fresh runner: 1 extra space.','Corredor descansado: 1 espacio extra.');say(S.cur.en+' Runner: choose your extra space.',S.cur.es+' Corredor: elige tu espacio extra.');return render()}
+  land()}
+
+function land(){
+  S.bonus=0;if(S.mode==='solo'&&S.msg)S.msg=[S.cur.en,S.cur.es];const w=where(S.pos);note('Runner is at: '+w[0]+'.','El corredor está en: '+w[1]+'.');
+  if(SP[S.pos].bridge&&!S.usedBridge){S.usedBridge=true;const br=CITY[SP[S.pos].a].n+'–'+CITY[SP[S.pos].b].n;ev('bridge','the Runner took the rope bridge '+br+' instead of the long way around','el corredor tomó el puente de cuerda '+br+' en vez del camino largo')}
+  if(S.pos==='SA')return finish('runner');
+  const t=S.tokens[S.pos];
+  if(t==='llama'||t==='flood'){S.phase='event';
+    if(t==='llama')say('An event space! Roll again: even = nothing, odd = stuck in place.','¡Un espacio de evento! Tira otra vez: pares = nada, impares = te quedas en tu lugar.');
+    else say('A bridge event! The rope bridge is swaying. Roll again: even = you cross, odd = back one space.','¡Un evento de puente! El puente de cuerda se mueve. Tira otra vez: pares = cruzas, impares = un espacio atrás.');
+    return render()}
+  toPlace()}
+
+function applyEvent(r){
+  const t=S.tokens[S.pos],w=where(S.pos);delete S.tokens[S.pos];const odd=r%2===1;
+  if(t==='llama'){if(odd){add('s',20);S.stuck=true;ev('stuck','a llama caravan blocked the '+w[0]+' and the Runner lost a turn','una caravana de llamas bloqueó el '+w[1]+' y el corredor perdió un turno');note('Event roll '+r+' (odd): stuck in place for a turn.','Dado de evento '+r+' (impar): detenido un turno.')}else note('Event roll '+r+' (even): nothing happens.','Dado de evento '+r+' (par): no pasa nada.')}
+  else{if(odd){add('s',20);ev('stuck','a swaying rope bridge pushed the Runner back on the '+w[0],'un puente de cuerda que se movía hizo retroceder al corredor en el '+w[1]);const p=S.hist.pop();if(p&&!blocked(p))S.pos=p;note('Bridge roll '+r+' (odd): pushed back one space.','Dado de puente '+r+' (impar): un espacio atrás.')}else note('Bridge roll '+r+' (even): crossed safely.','Dado de puente '+r+' (par): cruzó a salvo.')}
+  note(FIX[t].en,FIX[t].es);toPlace()}
+
+function toPlace(){
+  S.opts=genOpts();
+  if(S.mode==='solo'){if(S.opts.length&&Math.random()<.55)placeOpt(S.opts[Math.floor(Math.random()*S.opts.length)]);return endTurn()}
+  if(!S.opts.length)return endTurn();
+  S.phase='place';say(S.cur.en+' Spirits of the Mountain: choose what happens next.',S.cur.es+' Espíritus de la Montaña: elijan qué sucede ahora.');render()}
+
+function endTurn(){
+  scoreTurn();S.log.push(S.cur);const last=S.cur;S.turn++;S.justCleared=null;S.opts=[];
+  if(S.stuck){S.stuck=false;S.score.s+=25;S.log.push({turn:S.turn,die:null,en:'Stuck in place. No move this turn. Points: Spirits +25.',es:'Detenido en su lugar. Sin movimiento este turno. Puntos: Espíritus +25.'});S.turn++}
+  if(S.turn>LIMIT)return finish('late');
+  S.target=null;const c=fact();
+  if(c){S.runners++;S.fresh=true;const n=CITY[c].n;
+    ev('relay','a fresh chasqui took the message at '+n+' and kept running','un chasqui descansado tomó el mensaje en '+n+' y siguió corriendo');
+    S.log.push({tag:'Relay / <i class="e">Relevo</i> · '+n,en:'A fresh chasqui memorizes the message and takes over. Next move: +1 space. '+CITY[c].en,es:'Un chasqui descansado memoriza el mensaje y continúa. Próximo movimiento: +1 espacio. '+CITY[c].es});
+    return ask('r','Relay at '+n+'! A fresh chasqui takes the message.','¡Relevo en '+n+'! Un chasqui descansado toma el mensaje.')}
+  toMove(last.en,last.es)}
+function toMove(en,es){S.phase='move';S.q=null;say((en?en+' ':'')+'Runner: choose your move.'+(S.fresh?' Fresh runner: +1 space this turn.':''),(es?es+' ':'')+'Corredor: elige tu movimiento.'+(S.fresh?' Corredor descansado: +1 espacio este turno.':''));render()}
+function ask(who,en,es){const left=QUIZ.map((_,i)=>i).filter(i=>!S.asked.includes(i));if(!left.length)return toMove(en,es);
+  const qi=left[Math.floor(Math.random()*left.length)];S.asked.push(qi);const ord=[0,1,2];for(let i=2;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ord[i],ord[j]]=[ord[j],ord[i]]}
+  S.phase='quiz';S.q={who,qi,ord,pick:null};const Q=QUIZ[qi];
+  say(en+' Question for the '+(who==='r'?'Runner':'Spirits of the Mountain')+' (+15 points): '+Q[0],es+' Pregunta para '+(who==='r'?'el Corredor':'los Espíritus de la Montaña')+' (+15 puntos): '+Q[1]);render()}
+function answer(i){const q=S.q,Q=QUIZ[q.qi];
+  if(q.pick===null){if(!(i>=0&&i<=2))return;q.pick=i;const ok=q.ord[i]===0;S.quiz[q.who][1]++;if(ok){S.quiz[q.who][0]++;S.score[q.who]+=15}
+    const en=(ok?'Correct! +15 points. ':'Not quite. ')+Q[0]+' '+Q[2][0][0]+'.',es=(ok?'¡Correcto! +15 puntos. ':'No exactamente. ')+Q[1]+' '+Q[2][0][1]+'.';
+    S.log.push({tag:'Question / <i class="e">Pregunta</i> · '+(q.who==='r'?'Runner / <i class="e">Corredor</i>':'Spirits / <i class="e">Espíritus</i>'),en,es});say(en,es);return render()}
+  if(S.mode==='duo'&&q.who==='r')return ask('s','Now the Spirits answer.','Ahora responden los Espíritus.');
+  toMove('','')}
+
+function finish(how){if(how==='runner'){const left=LIMIT-S.turn;add('r',100+5*left);note(`Message delivered: +100, and +${5*left} for ${left} turns left.`,`Mensaje entregado: +100, y +${5*left} por ${left} turnos restantes.`);scoreTurn()}else S.score.s+=100;if(S.cur&&S.log[S.log.length-1]!==S.cur)S.log.push(S.cur);S.phase='over';S.over=how;render();showEnd()}
+
+// ---------- rendering ----------
+const svg=$('svg');
+function staticBoard(){
+  let h='';
+  for(const [x,y] of MTN)h+=`<path class="mtn" d="M${x-7} ${y+5}L${x-1} ${y-6}L${x+2} ${y-1}L${x+4} ${y-4}L${x+9} ${y+5}Z"/><path class="snow" d="M${x-2.6} ${y-3}L${x-1} ${y-6}L${x+.6} ${y-3.3}L${x-1} ${y-2.2}Z"/>`;
+  for(const [a,b,n,c] of EDGES){const A=CITY[a],B=CITY[b];
+    h+=c?`<path class="bridge" d="M${A.x} ${A.y}Q${c[0]} ${c[1]} ${B.x} ${B.y}"/>`:`<path class="road" d="M${A.x} ${A.y}L${B.x} ${B.y}"/>`}
+  h+=`<text class="sm" x="53" y="20">Bridge / <tspan font-style="italic">Puente</tspan></text><text class="sm" x="66" y="70.5">Bridge / <tspan font-style="italic">Puente</tspan></text>`;
+  for(const id in SP){const s=SP[id];if(!s.city)h+=`<circle class="sp${s.bridge?' br':''}" cx="${s.x}" cy="${s.y}" r="2.1"/>`}
+  for(const k in CITY){const c=CITY[k];const below=k==='CC'||k==='MP'||k==='TI'||k==='SA';
+    h+=`<circle class="cityc" cx="${c.x}" cy="${c.y}" r="3"/><text class="lbl" x="${c.x}" y="${c.y+(below?8:-5)}" text-anchor="${k==='Q'||k==='CC'?'start':k==='SA'||k==='AR'?'end':'middle'}" ${k==='Q'||k==='CC'?`dx="-4"`:k==='AR'||k==='SA'?`dx="6"`:''}>${c.n}</text>`}
+  h+=`<g id="dyn"></g><g id="runner"><circle r="4.2"/><text class="emo" style="font-size:5px">🏃</text></g><g id="hits"></g>`;
+  svg.innerHTML=h;
+  let hh='';for(const id in SP){const s=SP[id];hh+=`<circle class="hit" data-id="${id}" cx="${s.x}" cy="${s.y}" r="4.6"/>`}
+  svg.querySelector('#hits').innerHTML=hh}
+
+function pips(n){const on={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]}[n];let h='';for(let i=0;i<9;i++)h+=`<span class="${on.includes(i)?'on':''}"></span>`;return h}
+
+function render(){
+  let h='';
+  for(const id in S.tokens){const s=SP[id];h+=`<text class="emo" x="${s.x}" y="${s.y}">${TOK[S.tokens[id]].e}</text>`}
+  const mark=(id,cls,i)=>{const s=SP[id];return `<circle class="${cls}" cx="${s.x}" cy="${s.y}" r="4.4"/><circle class="ltrb" cx="${s.x+3.8}" cy="${s.y-3.8}" r="2.4"/><text class="ltr" x="${s.x+3.8}" y="${s.y-3.7}">${L[i]}</text>`};
+  const ro=(S.phase==='move'||S.phase==='bonus')?runnerOpts():[];
+  ro.forEach((o,i)=>h+=mark(o.id,o.k==='clear'?'opt cl':'opt',i));
+  if(S.phase==='place')S.opts.forEach((o,i)=>h+=mark(o.id,'opt pl',i));
+  if(S.phase==='roll'&&S.target){const s=SP[S.target];h+=`<circle class="opt tg" cx="${s.x}" cy="${s.y}" r="3.2"/>`}
+  svg.querySelector('#dyn').innerHTML=h;
+  const p=SP[S.pos];svg.querySelector('#runner').style.transform=`translate(${p.x}px,${p.y}px)`;
+  const rp=S.round===2?2:1,pR=S.mode==='solo'?'You / <i class="e">Tú</i>':`Player ${rp} / <i class="e">Jugador ${rp}</i>`,pS=S.mode==='solo'?'Computer / <i class="e">Computadora</i>':`Player ${3-rp} / <i class="e">Jugador ${3-rp}</i>`;
+  $('mode').hidden=!S.mode;$('mode').innerHTML=S.mode==='solo'?'<b>1 player</b><small>vs. computer / <i class="e">1 jugador contra la computadora</i></small>':`<b>2 players</b><small>Round ${S.round} of 2 / <i class="e">Ronda ${S.round} de 2</i></small>`;
+  $('scRl').innerHTML=(S.mode?`<small>${pR}</small>`:'')+'Runner<span class="es">Corredor</span>';$('scSl').innerHTML=(S.mode?`<small>${pS}</small>`:'')+'Spirits of the Mountain<span class="es">Espíritus de la Montaña</span>';
+  $('scR').textContent=S.score.r;$('scS').textContent=S.score.s;$('scRw').classList.toggle('lead',S.score.r>S.score.s);$('scSw').classList.toggle('lead',S.score.s>S.score.r);
+  $('turn').textContent=Math.min(S.turn,LIMIT);$('left').textContent=Math.max(0,LIMIT-S.turn+1);
+  const em=S.phase==='roll'||S.phase==='event'||S.phase==='place'||(S.phase==='quiz'&&S.q.who==='s');
+  $('who').className='who'+(em?' em':'');
+  $('whoT').innerHTML=S.phase==='over'?'Game over <span class="es">Fin del juego</span>':em?'<small>'+pS+'</small>Spirits of the Mountain <span class="es">Espíritus de la Montaña</span>':'<small>'+pR+' · chasqui #'+S.runners+'</small>Runner <span class="es">Corredor</span>';
+  if(S.msg)$('msg').innerHTML=esc(S.msg[0])+`<span class="es">${esc(S.msg[1])}</span>`;
+  const d=$('die');d.innerHTML=pips(S.face);const live=S.phase==='roll'||S.phase==='event',solo=S.mode==='solo';d.disabled=!live||solo;d.classList.toggle('hot',live&&!solo);
+  if(live&&solo&&!auto)auto=setTimeout(()=>{auto=null;roll()},900);
+  const tk=$('tokens');let t='';
+  ro.forEach((o,i)=>{const w=where(o.id);t+=o.k==='run'
+    ?`<button type="button" class="tok" data-i="${i}" id="ch-${i}"><b>${L[i]}</b><span>Run to: ${w[0]}<span class="es">Correr a: ${w[1]}</span></span></button>`
+    :`<button type="button" class="tok cl" data-i="${i}" id="ch-${i}"><b>${L[i]}</b><span>${TOK[S.tokens[o.id]].e} ${FIX[S.tokens[o.id]].doEn} (uses your turn)<span class="es">${FIX[S.tokens[o.id]].doEs} (usa tu turno)</span></span></button>`});
+  if(S.phase==='place'){S.opts.forEach((o,i)=>{const w=where(o.id);t+=`<button type="button" class="tok em" data-i="${i}" id="ch-${i}"><b>${L[i]}</b><span>${TOK[o.t].e} ${TOK[o.t].en}: ${w[0]}<span class="es">${TOK[o.t].es}: ${w[1]}</span></span><em>×${S.supply[o.t]}</em></button>`});
+    t+=`<button type="button" class="tok" data-i="-1" id="ch-none"><b>–</b><span>No hazard this turn<span class="es">Sin peligro este turno</span></span></button>`}
+  if(S.phase==='quiz'){const q=S.q,Q=QUIZ[q.qi];
+    if(q.pick===null)q.ord.forEach((a,i)=>t+=`<button type="button" class="tok${q.who==='s'?' em':''}" data-i="${i}" id="ch-${i}"><b>${L[i]}</b><span>${Q[2][a][0]}<span class="es">${Q[2][a][1]}</span></span></button>`);
+    else t+=`<button type="button" class="tok" data-i="9" id="ch-0"><b>→</b><span>Continue<span class="es">Continuar</span></span></button>`}
+  tk.innerHTML=t;tk.hidden=!t;
+  $('log').innerHTML=logHtml(S.log.slice().reverse())}
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function logHtml(list){return list.length?list.map(l=>`<li><b>${l.tag||'Turn / <i class="e">Turno</i> '+l.turn+(l.die?' · 🎲 '+l.die:'')}</b><br>${esc(l.en)}<span class="es">${esc(l.es)}</span></li>`).join(''):'<li>Your turns will be written here. <span class="es">Tus turnos se anotarán aquí.</span></li>'}
+
+const RULES=`<ul>
+<li>Carry the message from <b>Quito</b> to <b>Santiago</b> before ${LIMIT} turns run out.<span class="es">Lleva el mensaje de <b>Quito</b> a <b>Santiago</b> antes de que se acaben ${LIMIT} turnos.</span></li>
+<li>Each turn, the Runner chooses a move (A, B, C…). Then the Spirits of the Mountain roll the die and choose a hazard.<span class="es">En cada turno, el corredor elige un movimiento (A, B, C…). Luego los Espíritus de la Montaña tiran el dado y eligen un peligro.</span></li>
+<li>Both sides score points all game. The most points wins, so a slow delivery can still lose.<span class="es">Los dos lados ganan puntos durante todo el juego. Gana quien tenga más puntos, así que una entrega lenta todavía puede perder.</span></li>
+<li>At each new city the message passes to a fresh chasqui (+1 space on the next move) and there is a question worth +15 points.<span class="es">En cada ciudad nueva el mensaje pasa a un chasqui descansado (+1 espacio en el próximo movimiento) y hay una pregunta que vale +15 puntos.</span></li>
+<li>Never trapped: if a 🪨 or ❌ is next to you, you can use your turn to clear it.<span class="es">Nunca atrapado: si hay un 🪨 o ❌ junto a ti, puedes usar tu turno para quitarlo.</span></li>
+<li>🪨 Rockslides only happen near mountains and block the path. ❌ Roadblocks can happen anywhere and block the path.<span class="es">🪨 Los derrumbes solo ocurren cerca de montañas y bloquean el camino. ❌ Los obstáculos pueden ocurrir en cualquier lugar y bloquean el camino.</span></li>
+<li>🦙 Event spaces: roll again. Even = nothing, odd = stuck in place.<span class="es">🦙 Espacios de evento: tira otra vez. Pares = nada, impares = te quedas en tu lugar.</span></li>
+<li>🌊 Bridge events only happen on a bridge: roll again. Even = you cross, odd = back one space.<span class="es">🌊 Los eventos de puente solo ocurren en un puente: tira otra vez. Pares = cruzas, impares = un espacio atrás.</span></li></ul>`;
+
+function showStart(resume){
+  $('sheet').innerHTML=`<div><h1>${resume?'Main menu':'Inca Road Runner'}</h1><span class="es">${resume?'Menú principal':'Juego del Correcaminos Inca'}</span></div>
+  <p class="q" style="margin:0">Why were roads important to the Inca Empire?<span class="es">¿Por qué eran importantes los caminos para el Imperio Inca?</span></p>
+  <p style="margin:0">You are a chasqui, an Inca relay runner.<span class="es">Eres un chasqui, un mensajero de relevos inca.</span></p>${RULES}
+  <div class="modes">
+   <button class="btn pri" type="button" data-mode="duo" data-tut="1">2 players, 1 screen<small>2 rounds. Swap roles after round 1. Most total points wins.</small><small><i>2 jugadores, 1 pantalla. 2 rondas: cambien de rol después de la ronda 1.</i></small></button>
+   <button class="btn" type="button" data-mode="solo" data-tut="1">1 player<small>The computer plays the Spirits of the Mountain</small><small><i>1 jugador: la computadora juega como los Espíritus de la Montaña</i></small></button>
+  </div>${resume?'<p style="margin:0">Choosing players starts a new game.<span class="es">Elegir jugadores empieza un juego nuevo.</span></p><button class="btn" type="button" id="back">Back to game / <i class="e">Volver al juego</i></button>':''}`;
+  $('over').hidden=false}
+
+function showEnd(){
+  const r=S.score.r,sp=S.score.s,win=S.over==='runner',n=S.turn,duo=S.mode==='duo',final=!duo||S.round===2,rp=S.round===2?2:1;
+  let v;
+  if(!duo)v=[(r===sp?'Tie on points!':(r>sp?'You win':'The Spirits of the Mountain win')+' on points!')+` Runner ${r} · Spirits ${sp}`,(r===sp?'¡Empate en puntos!':(r>sp?'¡Tú ganas':'¡Los Espíritus de la Montaña ganan')+' por puntos!')+` Corredor ${r} · Espíritus ${sp}`];
+  else if(!final)v=[`Round 1 score: Player 1 (Runner) ${r} · Player 2 (Spirits) ${sp}. Now swap roles!`,`Puntos de la ronda 1: Jugador 1 (Corredor) ${r} · Jugador 2 (Espíritus) ${sp}. ¡Ahora cambien de rol!`];
+  else{const p1=S.prev.p1+sp,p2=S.prev.p2+r;v=[(p1===p2?'The match is a tie!':`Player ${p1>p2?1:2} wins the match!`)+` Player 1: ${p1} · Player 2: ${p2}`,(p1===p2?'¡El partido es un empate!':`¡El Jugador ${p1>p2?1:2} gana el partido!`)+` Jugador 1: ${p1} · Jugador 2: ${p2}`]}
+  let h=`<div><h1>${win?'The message arrived!':'The message came too late.'}</h1><span class="es">${win?'¡El mensaje llegó!':'El mensaje llegó demasiado tarde.'}</span></div>
+  <p style="margin:0">${win?`The Runner reached Santiago on turn ${n}.<span class="es">El corredor llegó a Santiago en el turno ${n}.</span>`:`${LIMIT} turns passed. The Spirits of the Mountain earn +100.<span class="es">Pasaron ${LIMIT} turnos. Los Espíritus de la Montaña ganan +100.</span>`}</p>
+  <p class="q" style="margin:0;font-size:1.15rem">${v[0]}<span class="es">${v[1]}</span></p>`;
+  if(!final)h+=`<div class="modes"><button class="btn pri" type="button" id="next">Start round 2: swap roles<small><i>Empezar la ronda 2: cambien de rol</i></small></button><button class="btn" type="button" id="menu">Main menu / <i class="e">Menú principal</i></button></div>`;
+  else{
+    const all=(S.prev?S.prev.events:[]).concat(S.events),evs=['relay','bridge','clear','stuck'].map(k=>all.find(e=>e.kind===k)).filter(Boolean).slice(0,3);
+    const rows=(S.prev?[[1,S.prev.sum]]:[]).concat([[S.round,summary()]]);
+    h+=`<p style="margin:0">${CITY.SA.en}<span class="es">${CITY.SA.es}</span></p>
+  <h2>Evidence from your game <span class="es">Evidencia de tu juego</span></h2>
+  <ul>${evs.map(e=>`<li>On turn ${e.turn}, ${esc(e.en)}. <b>${EVQ[e.kind][0]}</b><span class="es">En el turno ${e.turn}, ${esc(e.es)}. ${EVQ[e.kind][1]}</span></li>`).join('')||'<li>Look at your Game Log below for evidence.<span class="es">Busca evidencia en tu Registro del Juego abajo.</span></li>'}</ul>
+  <p class="q" style="margin:0">On your worksheet: In 2–3 sentences, explain why roads were important to the Inca Empire. Use evidence from your game.<span class="es">En tu hoja: En 2 a 3 oraciones, explica por qué los caminos eran importantes para el Imperio Inca. Usa evidencia de tu juego.</span></p>
+  <p class="frame">Roads were important to the Inca Empire because ____. For example, in my game ____. This shows ____.<span class="es">Los caminos eran importantes para el Imperio Inca porque ____. Por ejemplo, en mi juego ____. Esto muestra ____.</span></p>
+  <p class="bank" style="margin:0">road — <i class="e">camino</i> · empire — <i class="e">imperio</i> · engineer — <i class="e">ingeniero</i> · bridge — <i class="e">puente</i> · messenger (chasqui) — <i class="e">mensajero (chasqui)</i> · communication — <i class="e">comunicación</i> · mountain — <i class="e">montaña</i> · relay station (tambo) — <i class="e">estación de relevo (tambo)</i> · because — <i class="e">porque</i> · for example — <i class="e">por ejemplo</i> · this shows — <i class="e">esto muestra</i> · as a result — <i class="e">como resultado</i></p>
+  <h2>Summary for your teacher <span class="es">Resumen para tu maestro</span></h2>
+  <label for="names">Name(s)<span class="es">Nombre(s)</span></label>
+  <input class="nm" id="names" type="text" autocomplete="off">
+  <div class="tv"><table><tr><th>Round<span class="es">Ronda</span></th><th>Runner<span class="es">Corredor</span></th><th>Result<span class="es">Resultado</span></th><th>Runner points<span class="es">Puntos corredor</span></th><th>Spirits points<span class="es">Puntos espíritus</span></th><th>Cities<span class="es">Ciudades</span></th><th>Runner questions<span class="es">Preguntas corredor</span></th><th>Spirits questions<span class="es">Preguntas espíritus</span></th><th>Relays<span class="es">Relevos</span></th></tr>
+  ${rows.map(([rn,x])=>`<tr><td>${rn}</td><td>${duo?'Player '+rn+' / <i class="e">Jugador '+rn+'</i>':'1 player / <i class="e">1 jugador</i>'}</td><td>${x.over==='runner'?`Delivered, turn ${x.turn}<span class="es">Entregado, turno ${x.turn}</span>`:'Late<span class="es">Tarde</span>'}</td><td>${x.r}</td><td>${x.s}</td><td>${x.cities} / 8</td><td>${x.qr[0]} / ${x.qr[1]}</td><td>${duo?x.qs[0]+' / '+x.qs[1]:'–'}</td><td>${x.runners-1}</td></tr>`).join('')}</table></div>
+  <p class="bank" style="margin:0">${new Date().toLocaleString()}</p>
+  <h2>Your Game Log${duo?' (round 2)':''} <span class="es">Tu Registro del Juego${duo?' (ronda 2)':''}</span></h2>
+  <ol class="log">${logHtml(S.log)}</ol>
+  <div class="modes"><button class="btn pri" type="button" data-mode="${S.mode}">Play again / <i class="e">Jugar otra vez</i></button><button class="btn" type="button" id="menu">Main menu / <i class="e">Menú principal</i></button></div>`}
+  $('sheet').innerHTML=h;$('over').hidden=false;$('over').scrollTop=0}
+
+let tut={mode:'duo',i:0};
+function tutSteps(mode){const duo=mode==='duo';return[
+ ['🏃 ✉️','Your mission','Tu misión','You are a chasqui, an Inca relay runner. Carry the message from Quito to Santiago before 24 turns run out.','Eres un chasqui, un mensajero de relevos inca. Lleva el mensaje de Quito a Santiago antes de que se acaben 24 turnos.'],
+ ['🅰️ 🅱️ 👆','The Runner moves','El Corredor se mueve','On your turn, choose a move: A, B or C. You can tap the button or tap the glowing space on the map.','En tu turno, elige un movimiento: A, B o C. Puedes tocar el botón o tocar el espacio brillante en el mapa.'],
+ ['🎲 ⛰️','The Spirits of the Mountain','Los Espíritus de la Montaña',duo?'Then the other player is the Spirits of the Mountain. They tap the die to see what happens to the Runner, and then choose one hazard to put on the road.':'Then the computer plays the Spirits of the Mountain. It rolls the die to see what happens to you, and it may put a hazard on the road.',duo?'Luego el otro jugador es los Espíritus de la Montaña. Toca el dado para ver qué le pasa al Corredor y después elige un peligro para poner en el camino.':'Luego la computadora juega como los Espíritus de la Montaña. Tira el dado para ver qué te pasa y puede poner un peligro en el camino.'],
+ ['🪨 ❌ 🦙 🌊','Hazards','Peligros','Rockslides and roadblocks block the path. If one is next to you, you can use your turn to clear it, the way Inca engineers did. Llamas and swaying bridges make you roll again: an odd number is bad news.','Los derrumbes y los obstáculos bloquean el camino. Si hay uno junto a ti, puedes usar tu turno para quitarlo, como lo hacían los ingenieros incas. Las llamas y los puentes que se mueven te hacen tirar otra vez: un número impar es mala noticia.'],
+ ['🏘️ 🤝 ❓','Cities: relay and question','Ciudades: relevo y pregunta','At each new city, a fresh chasqui takes the message, so your next move goes 1 space farther. You also get a question about the Inca roads. A right answer is worth +15 points.','En cada ciudad nueva, un chasqui descansado toma el mensaje, así que tu próximo movimiento avanza 1 espacio más. También recibes una pregunta sobre los caminos incas. Una respuesta correcta vale +15 puntos.'],
+ ['🏆','Points decide the winner','Los puntos deciden quién gana','The Runner scores for getting closer, reaching cities and delivering the message fast. The Spirits score when the Runner is slowed down. '+(duo?'After round 1 you swap roles. The most total points wins.':'Try to beat the computer on points.'),'El Corredor gana puntos por acercarse, llegar a ciudades y entregar el mensaje rápido. Los Espíritus ganan puntos cuando el Corredor se retrasa. '+(duo?'Después de la ronda 1 cambian de rol. Gana quien tenga más puntos en total.':'Intenta ganarle a la computadora por puntos.')],
+ ['🔊 👆','Need it read to you?','¿Necesitas que te lo lean?','Tap the gold "Tap to hear" button in the corner, then tap any text to hear it. You can choose English, <i class="e">Español</i>, or both.','Toca el botón dorado "Toca para escuchar" en la esquina y luego toca cualquier texto para oírlo. Puedes elegir English, Español o ambos.']]}
+function showTut(mode,i){const st=tutSteps(mode);i=Math.max(0,Math.min(st.length-1,i));tut={mode,i};const t=st[i],last=i===st.length-1;
+  $('sheet').innerHTML=`<p class="bank" style="margin:0">Tutorial · ${i+1} / ${st.length}</p>
+  <div class="tdots" aria-hidden="true">${st.map((_,k)=>`<i class="${k<=i?'on':''}"></i>`).join('')}</div>
+  <div class="tpic" aria-hidden="true">${t[0]}</div>
+  <div><h1>${t[1]}</h1><span class="es">${t[2]}</span></div>
+  <p style="margin:0;font-size:1.1rem">${t[3]}<span class="es">${t[4]}</span></p>
+  <div class="modes">${i?'<button class="btn" type="button" id="tprev">← Back / <i class="e">Atrás</i></button>':''}<button class="btn pri" type="button" id="tnext">${last?'Start the game / <i class="e">Empezar el juego</i>':'Next / <i class="e">Siguiente</i> →'}</button></div>
+  ${last?'':'<button class="btn tskip" type="button" id="tskip">Skip tutorial / <i class="e">Saltar el tutorial</i></button>'}`;
+  $('over').hidden=false;$('over').scrollTop=0}
+
+function begin(mode,round,prev){S=fresh(mode);S.round=round||1;S.prev=prev||null;
+  if(S.round===2)say('Round 2: roles are swapped. Player 2 is now the Runner. Choose your first move from Quito.','Ronda 2: los roles cambiaron. El Jugador 2 ahora es el Corredor. Elige tu primer movimiento desde Quito.');
+  else say('Runner: choose your first move from Quito. '+CITY.Q.en,'Corredor: elige tu primer movimiento desde Quito. '+CITY.Q.es);
+  $('over').hidden=true;render()}
+
+let spk=0,lang='both',listen=false;
+try{const l=localStorage.getItem('irr-lang');if(l==='en'||l==='es'||l==='both')lang=l}catch(e){}
+function hush(){spk++;try{window.speechSynthesis.cancel()}catch(e){}$('hush').hidden=true}
+function speakText(en,es){try{const ss=window.speechSynthesis,k=++spk;ss.cancel();const parts=[];if(lang!=='es'&&en)parts.push([en,'en-US']);if(lang!=='en'&&es)parts.push([es,'es-MX']);if(!parts.length)return;
+  parts.forEach(([t,l],n)=>{const u=new SpeechSynthesisUtterance(t);u.lang=l;u.rate=.95;if(n===parts.length-1)u.onend=u.onerror=()=>{if(k===spk)$('hush').hidden=true};ss.speak(u)});$('hush').hidden=false}catch(e){}}
+function speak(){if(S&&S.msg)speakText(S.msg[0],S.msg[1])}
+function textOf(el){const c=el.cloneNode(true),ES='.es,.e,small>i',es=[...c.querySelectorAll(ES)].map(x=>x.textContent.trim()).filter(Boolean).join('. ');c.querySelectorAll(ES+',em').forEach(x=>x.remove());
+  const w=document.createTreeWalker(c,NodeFilter.SHOW_TEXT),out=[];while(w.nextNode())out.push(w.currentNode.nodeValue);return[out.join(' ').replace(/\s+/g,' ').trim(),es]}
+const SAYABLE='.tok,#msg,.key>span,.pts>span,ol.log li,.sheet li,.sheet p,.sheet h1,.sheet h2,.sheet .modes .btn,.sc,.who';
+function setLang(l){lang=l;try{localStorage.setItem('irr-lang',l)}catch(e){}document.querySelectorAll('#langs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===l))}
+function setListen(on){listen=on;document.body.classList.toggle('listen',on);$('ear').setAttribute('aria-pressed',on);
+  $('earT').innerHTML=on?'Listening is ON. Tap any text to hear it. Tap here to play again.<span class="es">Escuchar está ACTIVADO. Toca cualquier texto para oírlo. Toca aquí para volver a jugar.</span>':'🔊 Tap to hear<span class="es">Toca para escuchar</span>';if(!on)hush()}
+if('speechSynthesis' in window&&'SpeechSynthesisUtterance' in window){
+  $('say').hidden=false;$('langs').hidden=false;$('ear').hidden=false;setLang(lang);setListen(false);
+  $('say').addEventListener('click',speak);$('hush').addEventListener('click',hush);
+  $('langs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setLang(b.dataset.l)});
+  $('ear').addEventListener('click',()=>setListen(!listen));
+  document.addEventListener('click',e=>{if(!listen||e.target.closest('#ear,#hush,#langs,#say'))return;e.preventDefault();e.stopPropagation();const el=e.target.closest(SAYABLE);if(el){const t=textOf(el);speakText(t[0],t[1])}},true)}
+
+svg.addEventListener('click',e=>{const id=e.target.dataset&&e.target.dataset.id;if(id&&S)tapSpace(id)});
+$('die').addEventListener('click',roll);
+$('tokens').addEventListener('click',e=>{const b=e.target.closest('.tok');if(b)choose(+b.dataset.i)});
+$('help').addEventListener('click',()=>showStart(!!(S&&S.mode&&S.phase!=='over')));
+$('sheet').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.mode){if(b.dataset.tut)showTut(b.dataset.mode,0);else begin(b.dataset.mode)}
+  else if(b.id==='tnext'){if(tut.i<tutSteps(tut.mode).length-1)showTut(tut.mode,tut.i+1);else begin(tut.mode)}
+  else if(b.id==='tprev')showTut(tut.mode,tut.i-1);
+  else if(b.id==='tskip')begin(tut.mode);
+  else if(b.id==='next')begin('duo',2,{p1:S.score.r,p2:S.score.s,sum:summary(),events:S.events});else if(b.id==='back')$('over').hidden=true;else if(b.id==='menu')showStart(false)});
+
+$('key').innerHTML=Object.keys(DIE).map(k=>`<b>${k}</b><span>${DIE[k][0]}<span class="es">${DIE[k][1]}</span></span>`).join('');
+staticBoard();
+function start(data){
+  if(data&&data.S&&data.S.phase!=='over'){S=Object.assign(fresh(data.S.mode),data.S);if(S.phase==='place')S.opts=genOpts();$('over').hidden=true;render()}
+  else{S=fresh('');say('','');render();showStart(false)}
+  window.claude?.hot?.snapshot?.(()=>({S}))}
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+</script>
+</body>
+</html>
